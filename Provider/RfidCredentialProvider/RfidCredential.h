@@ -23,7 +23,7 @@ public:
 		return cRef;
 	}
 
-	STDMETHOD (QueryInterface)(REFIID riid, void** ppv)
+	STDMETHOD(QueryInterface)(REFIID riid, void** ppv)
 	{
 		HRESULT hr;
 		if (ppv != NULL)
@@ -71,14 +71,14 @@ public:
 	IFACEMETHODIMP CommandLinkClicked(DWORD dwFieldID);
 
 	IFACEMETHODIMP GetSerialization(
-		CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE* pcpgsr, 
-		CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION* pcpcs, 
-		PWSTR* ppwszOptionalStatusText, 
+		CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE* pcpgsr,
+		CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION* pcpcs,
+		PWSTR* ppwszOptionalStatusText,
 		CREDENTIAL_PROVIDER_STATUS_ICON* pcpsiOptionalStatusIcon);
 	IFACEMETHODIMP ReportResult(
-		NTSTATUS ntsStatus, 
+		NTSTATUS ntsStatus,
 		NTSTATUS ntsSubstatus,
-		PWSTR* ppwszOptionalStatusText, 
+		PWSTR* ppwszOptionalStatusText,
 		CREDENTIAL_PROVIDER_STATUS_ICON* pcpsiOptionalStatusIcon);
 
 public:
@@ -98,16 +98,16 @@ public:
 
 	LONG                                  _cRef;
 	CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR  _rgCredProvFieldDescriptors[SFI_NUM_FIELDS]; // An array holding the type and 
-	                                                                                   // name of each field in the tile.
+																					   // name of each field in the tile.
 
 	FIELD_STATE_PAIR                      _rgFieldStatePairs[SFI_NUM_FIELDS];          // An array holding the state of 
-	                                                                                   // each field in the tile.
+																					   // each field in the tile.
 
 	PWSTR                                 _rgFieldStrings[SFI_NUM_FIELDS];             // An array holding the string 
-	                                                                                   // value of each field. This is 
-	                                                                                   // different from the name of 
-	                                                                                   // the field held in 
-	                                                                                   // _rgCredProvFieldDescriptors.
+																					   // value of each field. This is 
+																					   // different from the name of 
+																					   // the field held in 
+																					   // _rgCredProvFieldDescriptors.
 	ICredentialProviderCredentialEvents* _pCredProvCredentialEvents;
 
 	PWSTR username;

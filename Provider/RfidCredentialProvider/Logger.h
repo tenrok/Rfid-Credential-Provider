@@ -1,1 +1,1 @@
-void Log(const char *toWrite);
+void Log(const char* toWrite);

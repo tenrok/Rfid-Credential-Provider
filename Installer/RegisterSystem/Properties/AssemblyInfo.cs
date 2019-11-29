@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("RegisterSystem")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Tyler Menezes")]
+[assembly: AssemblyCompany("KORNET")]
 [assembly: AssemblyProduct("RegisterSystem")]
-[assembly: AssemblyCopyright("Copyright © Tyler Menezes 2011")]
+[assembly: AssemblyCopyright("Copyright © KORNET 2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

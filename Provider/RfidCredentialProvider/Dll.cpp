@@ -18,8 +18,7 @@ static LONG g_cRef = 0;   // global dll reference count
 
 extern HRESULT RfidProvider_CreateInstance(REFIID riid, void** ppv);
 
-HINSTANCE g_hinst = NULL;   // global dll hinstance
-
+HINSTANCE g_hinst = nullptr;   // global dll hinstance
 
 class CClassFactory : public IClassFactory
 {
@@ -40,7 +39,7 @@ public:
 		return cRef;
 	}
 
-	STDMETHOD (QueryInterface)(REFIID riid, void** ppv) 
+	STDMETHOD(QueryInterface)(REFIID riid, void** ppv)
 	{
 		HRESULT hr;
 		if (ppv != NULL)
@@ -65,7 +64,7 @@ public:
 	}
 
 	// IClassFactory
-	STDMETHOD (CreateInstance)(IUnknown* pUnkOuter, REFIID riid, void** ppv)
+	STDMETHOD(CreateInstance)(IUnknown* pUnkOuter, REFIID riid, void** ppv)
 	{
 		HRESULT hr;
 		if (!pUnkOuter)
@@ -79,7 +78,7 @@ public:
 		return hr;
 	}
 
-	STDMETHOD (LockServer)(BOOL bLock)
+	STDMETHOD(LockServer)(BOOL bLock)
 	{
 		if (bLock)
 		{
@@ -94,11 +93,10 @@ public:
 
 private:
 	CClassFactory() : _cRef(1) {}
-	~CClassFactory(){}
+	~CClassFactory() {}
 
 private:
 	LONG _cRef;
-
 	friend HRESULT CClassFactory_CreateInstance(REFCLSID rclsid, REFIID riid, void** ppv);
 };
 
@@ -131,10 +129,9 @@ BOOL WINAPI DllMain(
 	HINSTANCE hinstDll,
 	DWORD dwReason,
 	LPVOID pReserved
-	)
+)
 {
 	UNREFERENCED_PARAMETER(pReserved);
-
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
@@ -145,10 +142,8 @@ BOOL WINAPI DllMain(
 	case DLL_THREAD_DETACH:
 		break;
 	}
-
 	g_hinst = hinstDll;
 	return TRUE;
-
 }
 
 void DllAddRef()
@@ -165,7 +160,6 @@ void DllRelease()
 STDAPI DllCanUnloadNow()
 {
 	HRESULT hr;
-
 	if (g_cRef > 0)
 	{
 		hr = S_FALSE;   // cocreated objects still exist, don't unload
@@ -174,7 +168,6 @@ STDAPI DllCanUnloadNow()
 	{
 		hr = S_OK;      // refcount is zero, ok to unload
 	}
-
 	return hr;
 }
 
@@ -183,4 +176,3 @@ STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv)
 {
 	return CClassFactory_CreateInstance(rclsid, riid, ppv);
 }
-

@@ -16,10 +16,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	credUiInfo.pszCaptionText = TEXT("WinCred UI Demo");
 	credUiInfo.pszMessageText = TEXT("Example of RFID!");
 	credUiInfo.cbSize = sizeof(credUiInfo);
-	credUiInfo.hbmBanner = NULL;
-	credUiInfo.hwndParent = NULL;
+	credUiInfo.hbmBanner = nullptr;
+	credUiInfo.hwndParent = nullptr;
 	
-	CredUIPromptForWindowsCredentials(&credUiInfo, 0, &authPackage, NULL, 0, &authBuffer, &authBufferSize, &save, 0);
+	CredUIPromptForWindowsCredentials(&credUiInfo, 0, &authPackage, nullptr, 0, &authBuffer, &authBufferSize, &save, 0);
 
 	return 0;
 }

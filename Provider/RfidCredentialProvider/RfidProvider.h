@@ -19,8 +19,8 @@
 
 #define MAX_CREDENTIALS 1
 
-RfidCredential *_rgpCredentials[MAX_CREDENTIALS]; // Pointers to the credentials which will be enumerated by 
-	                                                           // this Provider.
+RfidCredential* _rgpCredentials[MAX_CREDENTIALS]; // Pointers to the credentials which will be enumerated by 
+												  // this Provider.
 
 class RfidProvider : public ICredentialProvider
 {
@@ -41,10 +41,10 @@ public:
 		return cRef;
 	}
 
-	STDMETHOD (QueryInterface)(REFIID riid, void** ppv)
+	STDMETHOD(QueryInterface)(REFIID riid, void** ppv)
 	{
 		HRESULT hr;
-		if (IID_IUnknown == riid || 
+		if (IID_IUnknown == riid ||
 			IID_ICredentialProvider == riid)
 		{
 			*ppv = this;
@@ -67,14 +67,14 @@ public:
 	IFACEMETHODIMP UnAdvise();
 
 	IFACEMETHODIMP GetFieldDescriptorCount(__out DWORD* pdwCount);
-	IFACEMETHODIMP GetFieldDescriptorAt(DWORD dwIndex,  __deref_out CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR** ppcpfd);
+	IFACEMETHODIMP GetFieldDescriptorAt(DWORD dwIndex, __deref_out CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR** ppcpfd);
 
 	IFACEMETHODIMP GetCredentialCount(
 		__out DWORD* pdwCount,
 		__out DWORD* pdwDefault,
 		__out BOOL* pbAutoLogonWithDefault);
 	IFACEMETHODIMP GetCredentialAt(
-		DWORD dwIndex, 
+		DWORD dwIndex,
 		__out ICredentialProviderCredential** ppcpc);
 
 	friend HRESULT RfidProvider_CreateInstance(REFIID riid, __deref_out void** ppv);
@@ -88,19 +88,14 @@ public:
 		__in PWSTR pwzPassword,
 		__in PWSTR pwzDomain
 	);
-	
-	DWORD                                   _dwNumCreds;
+
+	DWORD _dwNumCreds;
 
 	ICredentialProviderEvents* Pcpe;
 	UINT_PTR UpAdviseContext;
 protected:
 	RfidProvider();
 	__override ~RfidProvider();
-
 private:
-
-
-
-private:
-	LONG              _cRef;
+	LONG _cRef;
 };

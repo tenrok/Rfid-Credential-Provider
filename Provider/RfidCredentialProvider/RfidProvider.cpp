@@ -16,7 +16,6 @@
 #include <iostream>
 #include "Serial.h"
 #include "common.h"
-#include "md5.h"
 #include <stdio.h>
 #include "Registry.h"
 #include "Logger.h"
@@ -25,12 +24,11 @@
 
 // RfidProvider ////////////////////////////////////////////////////////
 
-RfidProvider::RfidProvider():
+RfidProvider::RfidProvider() :
 	_cRef(1),
 	_dwNumCreds(0)
 {
 	DllAddRef();
-
 	ZeroMemory(_rgpCredentials, sizeof(_rgpCredentials));
 }
 
@@ -43,49 +41,54 @@ RfidProvider::~RfidProvider()
 			_rgpCredentials[i]->Release();
 		}
 	}
-
 	DllRelease();
 }
 
-char* sanatizeRfidReading(char* read){
-	
+char* sanatizeRfidReading(char* read)
+{
 	char* out = new char[strlen(read)];
 	memset(out, '\0', strlen(read));
 
 	bool hasTransmissionStarted = false;
 
-	HKEY hKey;
-	if(RegOpenKeyExW(HKEY_LOCAL_MACHINE, s2ws("SOFTWARE\\Tyler Menezes\\Rfid Login").c_str(), 0, KEY_READ, &hKey) != ERROR_SUCCESS){
-		delete hKey;
-		return new char;
-	}
+	//HKEY hKey;
+	//if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, s2ws("SOFTWARE\\KORNET\\WinLogin").c_str(), 0, KEY_READ, &hKey) != ERROR_SUCCESS)
+	//{
+	//	delete hKey;
+	//	return new char;
+	//}
 
-	char start = 0x00;
-	DWORD dStart;
-	LONG sError = GetDWORDRegKey(hKey, L"Message Start", dStart, 0x00);
-	start = (char)dStart;
+	char start = 0x45; // "E" - Em-Marine... (Z-2 USB Reader)
+	//DWORD dStart;
+	//LONG sError = GetDWORDRegKey(hKey, L"Message Start", dStart, 0x00);
+	//start = (char)dStart;
 
-	char end = 0x00;
-	DWORD dEnd;
-	GetDWORDRegKey(hKey, L"Message End", dEnd, 0x00);
-	end = (char)dEnd;
+	char end = 0x0D;
+	//DWORD dEnd;
+	//GetDWORDRegKey(hKey, L"Message End", dEnd, 0x00);
+	//end = (char)dEnd;
 
-	if(sError == 2){
-		hasTransmissionStarted = true;
-	}
+	//if (sError == 2)
+	//{
+	//	hasTransmissionStarted = true;
+	//}
 
 	int c = 0;
-	for(int i = 0; i < strlen(read); i++){
-		if(read[i] == start){
+	for (int i = 0; i < strlen(read); i++)
+	{
+		if (read[i] == start)
+		{
 			hasTransmissionStarted = true;
+			//continue;
+		}
+
+		if (!hasTransmissionStarted)
+		{
 			continue;
 		}
 
-		if(!hasTransmissionStarted){
-			continue;
-		}
-
-		if(read[i] == end){
+		if (read[i] == end)
+		{
 			break;
 		}
 
@@ -97,13 +100,14 @@ char* sanatizeRfidReading(char* read){
 
 HANDLE hThread;
 bool rfidThreadRunning = true;
-RfidProvider *prp;
+RfidProvider* prp;
 bool doAutoLogin = false;
 
-void getCredentials(char* token){
-
+void getCredentials(char* token)
+{
 	HKEY hKey;
-	if(RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Tyler Menezes\\Rfid Login\\Keys", 0, KEY_READ, &hKey) != ERROR_SUCCESS){
+	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\KORNET\\WinLogin\\Keys", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
+	{
 		delete hKey;
 		return; // Token not recognized.
 	}
@@ -111,8 +115,7 @@ void getCredentials(char* token){
 	std::wstring keySalt;
 	GetStringRegKey(hKey, L"Salt", keySalt, L"bad");
 
-
-	CSHA1 *sha1 = new CSHA1();
+	CSHA1* sha1 = new CSHA1();
 	sha1->Update((unsigned char*)token, strlen(token));
 	sha1->Update((unsigned char*)s2cs(ws2s(keySalt)), wcslen(keySalt.c_str()));
 	sha1->Final();
@@ -120,10 +123,11 @@ void getCredentials(char* token){
 	sha1->ReportHashStl(hash, CSHA1::REPORT_HEX_SHORT);
 	delete sha1;
 
-	std::string key = std::string("SOFTWARE\\Tyler Menezes\\Rfid Login\\Keys\\");
+	std::string key = std::string("SOFTWARE\\KORNET\\WinLogin\\Keys\\");
 	key += ws2s(hash);
 
-	if(RegOpenKeyExW(HKEY_LOCAL_MACHINE, s2ws(key).c_str(), 0, KEY_READ, &hKey) != ERROR_SUCCESS){
+	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, s2ws(key).c_str(), 0, KEY_READ, &hKey) != ERROR_SUCCESS)
+	{
 		delete hKey;
 		return; // Token not recognized.
 	}
@@ -135,10 +139,10 @@ void getCredentials(char* token){
 
 	char* cUsername = s2cs(GetCharRegKey(hKey, L"Username"));
 	char* cPassword = s2cs(GetCharRegKey(hKey, L"Password"));
-	char* cDomain	= s2cs(GetCharRegKey(hKey, L"Domain"));
-	
+	char* cDomain = s2cs(GetCharRegKey(hKey, L"Domain"));
+
 	GetStringRegKey(hKey, L"Salt", salt, L"");
-	
+
 	unsigned char* cSalt = (unsigned char*)s2cs(ws2s(salt));
 
 	std::wstring decryptionKey;
@@ -180,50 +184,58 @@ void getCredentials(char* token){
 
 DWORD WINAPI _RfidReader(LPVOID lpParameter)
 {
-	Serial* s = new Serial();
+	//Serial* s = new Serial();
+	auto s = std::make_unique<Serial>();
 
-	char *lastTag = new char[128];
+	char* lastTag = new char[128];
 	memset(lastTag, '\0', 128);
-	while(lastTag[0] != '\0');
+	while (lastTag[0] != '\0');
 
 	int tagCount = 0;
 
-	while(rfidThreadRunning){
-
+	while (rfidThreadRunning)
+	{
 		Sleep(50);
 
-		char *id = new char[128];
+		char* id = new char[128];
 		memset(id, '\0', 128);
-		while(id[0] != '\0');
+		while (id[0] != '\0');
 
-		if(tagCount >= 128){
+		if (tagCount >= 128)
+		{
 			tagCount = 0;
 			memset(lastTag, '\0', 128);
-			while(lastTag[0] != '\0');
+			while (lastTag[0] != '\0');
 		}
 
 		s->ReadData(id, 1);
 
-		if(strlen(id) > 0){
-			for(int i = 0; i < strlen(id); i++){
+		if (strlen(id) > 0)
+		{
+			for (int i = 0; i < strlen(id); i++)
+			{
 				lastTag[tagCount++] = id[i];
 			}
 		}
 
 		delete id;
 
-
-		for(int i = 0; i < strlen(lastTag); i++){
-			if(lastTag[i] == 0x03){
+		for (int i = 0; i < strlen(lastTag); i++)
+		{
+			if (lastTag[i] == /*0x03*/0x0A)
+			{
 				char* fullTag = sanatizeRfidReading(lastTag);
-
+				
 				printf(fullTag);
+				//int n;
+				//for (n = 0; fullTag[n] != '\0'; n++)
+				//	printf("%02x", (unsigned char)fullTag[n]);
 
 				getCredentials(fullTag);
 
 				tagCount = 0;
 				memset(lastTag, '\0', 128);
-				while(lastTag[0] != '\0');
+				while (lastTag[0] != '\0');
 
 				delete fullTag;
 
@@ -233,28 +245,26 @@ DWORD WINAPI _RfidReader(LPVOID lpParameter)
 	}
 
 	delete lastTag;
-	delete s;
+
+	//delete s;
 
 	return 0;
 }
 
-
-void InitRfidReader(){
+void InitRfidReader()
+{
 	rfidThreadRunning = true;
-	hThread = ::CreateThread(NULL, 0, _RfidReader, NULL , 0, NULL);
+	hThread = ::CreateThread(nullptr, 0, _RfidReader, nullptr, 0, nullptr);
 }
 
-void StopRfidReader(){
+void StopRfidReader()
+{
 	rfidThreadRunning = false;
 }
 
-HRESULT RfidProvider::SetUsageScenario(
-	CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
-	DWORD dwFlags
-	)
+HRESULT RfidProvider::SetUsageScenario(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, DWORD dwFlags)
 {
 	UNREFERENCED_PARAMETER(dwFlags);
-
 	HRESULT hr;
 	static bool s_bCredsEnumerated = false;
 	switch (cpus)
@@ -263,118 +273,93 @@ HRESULT RfidProvider::SetUsageScenario(
 	case CPUS_CREDUI:
 		RfidCredential::lockType = KerbInteractiveLogon;
 		break;
-	case CPUS_UNLOCK_WORKSTATION:    
+	case CPUS_UNLOCK_WORKSTATION:
 		RfidCredential::lockType = KerbWorkstationUnlockLogon;
 		break;
 	case CPUS_CHANGE_PASSWORD:
 		hr = E_NOTIMPL;
 		break;
-
 	default:
 		hr = E_INVALIDARG;
 		break;
 	}
-
-		if (!s_bCredsEnumerated)
-		{
-			prp = this;
-			hr = this->_EnumerateCredentials();
-			s_bCredsEnumerated = true;
-		}
-		else
-		{
-			hr = S_OK;
-		}
-
+	if (!s_bCredsEnumerated)
+	{
+		prp = this;
+		hr = this->_EnumerateCredentials();
+		s_bCredsEnumerated = true;
+	}
+	else
+	{
+		hr = S_OK;
+	}
 	return hr;
 }
 
-STDMETHODIMP RfidProvider::SetSerialization(
-	const CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION* pcpcs
-	)
+STDMETHODIMP RfidProvider::SetSerialization(const CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION* pcpcs)
 {
 	UNREFERENCED_PARAMETER(pcpcs);
-
 	return E_NOTIMPL;
 }
 
 ICredentialProviderEvents* Pcpe;
 UINT_PTR UpAdviseContext;
 
-HRESULT RfidProvider::Advise(
-	ICredentialProviderEvents* pcpe,
-	UINT_PTR upAdviseContext
-	)
+HRESULT RfidProvider::Advise(ICredentialProviderEvents* pcpe, UINT_PTR upAdviseContext)
 {
 	InitRfidReader();
-
-	Pcpe=pcpe;
+	Pcpe = pcpe;
 	Pcpe->AddRef();
-	UpAdviseContext=upAdviseContext;
-
+	UpAdviseContext = upAdviseContext;
 	return S_OK;
-
 }
 
 HRESULT RfidProvider::UnAdvise()
 {
 	StopRfidReader();
-
-	 if(Pcpe)
+	if (Pcpe)
 	{
 		Pcpe->Release();
-		Pcpe=NULL;
+		Pcpe = nullptr;
 	}
-	UpAdviseContext=NULL;
-
-
+	UpAdviseContext = NULL;
 	return S_OK;
 }
 
-HRESULT RfidProvider::GetFieldDescriptorCount(
-	DWORD* pdwCount
-	)
+HRESULT RfidProvider::GetFieldDescriptorCount(DWORD* pdwCount)
 {
 	*pdwCount = SFI_NUM_FIELDS;
-
 	return S_OK;
 }
 
-HRESULT RfidProvider::GetFieldDescriptorAt(
-	DWORD dwIndex, 
-	CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR** ppcpfd
-	)
-{    
+HRESULT RfidProvider::GetFieldDescriptorAt(DWORD dwIndex, CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR** ppcpfd)
+{
 	HRESULT hr;
 	if ((dwIndex < SFI_NUM_FIELDS) && ppcpfd)
 	{
 		hr = FieldDescriptorCoAllocCopy(s_rgCredProvFieldDescriptors[dwIndex], ppcpfd);
 	}
 	else
-	{ 
+	{
 		hr = E_INVALIDARG;
 	}
-
 	return hr;
 }
 
-HRESULT RfidProvider::GetCredentialCount(
-	DWORD* pdwCount,
-	DWORD* pdwDefault,
-	BOOL* pbAutoLogonWithDefault
-	)
+HRESULT RfidProvider::GetCredentialCount(DWORD* pdwCount, DWORD* pdwDefault, BOOL* pbAutoLogonWithDefault)
 {
 	HRESULT hr;
-
-	if(doAutoLogin && _dwNumCreds > 0 && !RfidCredential::lastLoginFailed){
+	if (doAutoLogin && _dwNumCreds > 0 && !RfidCredential::lastLoginFailed)
+	{
 		*pdwDefault = _dwNumCreds - 1;
 		*pbAutoLogonWithDefault = TRUE;
-	}else{
+	}
+	else
+	{
 		*pdwDefault = CREDENTIAL_PROVIDER_NO_DEFAULT;
 		*pbAutoLogonWithDefault = FALSE;
 	}
-
-	*pdwCount = _dwNumCreds; 
+	*pdwCount = _dwNumCreds;
 	if (*pdwCount > 0)
 	{
 		hr = S_OK;
@@ -383,18 +368,13 @@ HRESULT RfidProvider::GetCredentialCount(
 	{
 		hr = E_FAIL;
 	}
-
 	return hr;
 }
 
-HRESULT RfidProvider::GetCredentialAt(
-	DWORD dwIndex, 
-	ICredentialProviderCredential** ppcpc
-	)
+HRESULT RfidProvider::GetCredentialAt(DWORD dwIndex, ICredentialProviderCredential** ppcpc)
 {
 	HRESULT hr;
-
-	if((dwIndex < _dwNumCreds) && ppcpc)
+	if ((dwIndex < _dwNumCreds) && ppcpc)
 	{
 		hr = _rgpCredentials[dwIndex]->QueryInterface(IID_ICredentialProviderCredential, reinterpret_cast<void**>(ppcpc));
 	}
@@ -402,25 +382,17 @@ HRESULT RfidProvider::GetCredentialAt(
 	{
 		hr = E_INVALIDARG;
 	}
-
 	return hr;
 }
 
-HRESULT RfidProvider::_EnumerateOneCredential(
-	DWORD dwCredentialIndex,
-	PWSTR pwzUsername,
-	PWSTR pwzPassword,
-	PWSTR pwzDomain
-	)
+HRESULT RfidProvider::_EnumerateOneCredential(DWORD dwCredentialIndex, PWSTR pwzUsername, PWSTR pwzPassword, PWSTR pwzDomain)
 {
 	HRESULT hr;
 	RfidCredential* ppc = new RfidCredential();
-
 	if (ppc)
 	{
 		hr = ppc->Initialize(s_rgCredProvFieldDescriptors, s_rgFieldStatePairs, pwzUsername, pwzPassword, pwzDomain);
 		ppc->lastLoginFailed = false;
-
 		if (SUCCEEDED(hr))
 		{
 			_rgpCredentials[dwCredentialIndex] = ppc;
@@ -435,21 +407,19 @@ HRESULT RfidProvider::_EnumerateOneCredential(
 	{
 		hr = E_OUTOFMEMORY;
 	}
-
 	return hr;
 }
+
 HRESULT RfidProvider::_EnumerateCredentials()
 {
 	HRESULT hr = _EnumerateOneCredential(0, NULL, NULL, NULL);
-
 	return hr;
 }
+
 HRESULT RfidProvider_CreateInstance(REFIID riid, void** ppv)
 {
 	HRESULT hr;
-
 	RfidProvider* pProvider = new RfidProvider();
-
 	if (pProvider)
 	{
 		hr = pProvider->QueryInterface(riid, ppv);
@@ -459,6 +429,5 @@ HRESULT RfidProvider_CreateInstance(REFIID riid, void** ppv)
 	{
 		hr = E_OUTOFMEMORY;
 	}
-
 	return hr;
 }

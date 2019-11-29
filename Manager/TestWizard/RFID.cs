@@ -7,80 +7,75 @@ using System.Threading;
 
 namespace TestWizard
 {
-    public delegate void RfidRead(string id);
-    public class RFID
-    {
-        private SerialPort p;
+	public delegate void RfidRead(string id);
+	public class RFID
+	{
+		private SerialPort p;
 
-        private const int baud = 9600;
-        private const Parity parity = Parity.None;
-        private const int dataBits = 8;
-        private const StopBits stopBits = StopBits.One;
+		private const int baud = 9600;
+		private const Parity parity = Parity.None;
+		private const int dataBits = 8;
+		private const StopBits stopBits = StopBits.One;
 
-        public event RfidRead IncomingRfid;
+		public event RfidRead IncomingRfid;
 
-        private Thread readThread;
-        private bool continueReading = false;
+		private Thread readThread;
+		private bool continueReading = false;
 
-        private string Port = "COM3";
+		private string Port = "COM3";
 
-        public RFID()
-        {
-            init();
-        }
+		public RFID()
+		{
+			init();
+		}
 
-        public RFID(int port)
-        {
-            Port = "COM" + port;
+		public RFID(int port)
+		{
+			Port = "COM" + port;
+			init();
+		}
 
-            init();
-        }
+		public RFID(string port)
+		{
+			Port = port;
+			init();
+		}
 
-        public RFID(string port)
-        {
-            Port = port;
+		private void init()
+		{
+			p = new SerialPort(Port, baud, parity, dataBits, stopBits);
+			if (!continueReading)
+			{
+				continueReading = true;
+				readThread = new Thread(Read);
+				readThread.Start();
+			}
+		}
 
-            init();
-        }
+		public void Close()
+		{
+			continueReading = false;
+		}
 
-        private void init()
-        {
-            p = new SerialPort(Port, baud, parity, dataBits, stopBits);
+		private void Read()
+		{
+			p.Open();
 
-            if (!continueReading)
-            {
-                continueReading = true;
-                readThread = new Thread(Read);
-                readThread.Start();
-            }
+			while (continueReading)
+			{
+				string result = p.ReadLine();
 
+				// Strip out meta-text
+				//result = result.Replace("\u0003", "");
+				//result = result.Replace("\u0002", "");
+				result = result.Replace("\r", "");
+				result = result.Replace("\n", "");
+				//result = string.Concat(result.Select(x => ((int)x).ToString("x")));
 
-        }
+				IncomingRfid(result);
+			}
 
-        public void Close()
-        {
-            continueReading = false;
-        }
-
-        private void Read()
-        {
-
-            p.Open();
-
-            while (continueReading)
-            {
-                string result = p.ReadLine();
-
-                // Strip out meta-text
-                result = result.Replace("\u0003", "");
-                result = result.Replace("\u0002", "");
-                result = result.Replace("\r", "");
-                result = result.Replace("\n", "");
-
-                IncomingRfid(result);
-            }
-
-            p.Close();
-        }
-    }
+			p.Close();
+		}
+	}
 }
